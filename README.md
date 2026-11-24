@@ -111,3 +111,10 @@ The 6.12 and dev fork commits include Gerrit `Change-Id` trailers. See
 `GERRIT.md`. An anonymous Gerrit duplicate query is blocked with HTTP 403 from
 this environment; no existing public fix for this exact modelChange path was
 found through web search.
+
+## Gerrit review links
+
+The changes were uploaded to Qt Gerrit and pass Qt Sanity Review:
+
+- dev: https://codereview.qt-project.org/c/qt/qtbase/+/792071
+- 6.12: https://codereview.qt-project.org/c/qt/qtbase/+/792072
