@@ -96,3 +96,18 @@ mutations across synchronous accessibility callbacks.
 
 The patch is provided under the same Qt licensing terms as the modified files.
 The standalone test programs are provided under the MIT license.
+
+## Independent crash report
+
+A Fedora ABRT report also shows a crash in
+`QAccessibleTable::modelChange(QAccessibleTableModelChangeEvent*)` in
+`designer-qt6`, independently corroborating that this path is crash-prone:
+
+<https://retrace.fedoraproject.org/faf/problems/803892/>
+
+## Patch review state
+
+The 6.12 and dev fork commits include Gerrit `Change-Id` trailers. See
+`GERRIT.md`. An anonymous Gerrit duplicate query is blocked with HTTP 403 from
+this environment; no existing public fix for this exact modelChange path was
+found through web search.
