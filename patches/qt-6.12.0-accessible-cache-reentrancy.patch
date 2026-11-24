@@ -1,0 +1,124 @@
+From 1d3a303846c2df629b9b7d3e4e4d87c4f61272b4 Mon Sep 17 00:00:00 2001
+From: Volker Hilsheimer <volker.hilsheimer@qt.io>
+Date: Fri, 16 Oct 2026 11:18:33 +0200
+Subject: [PATCH] Accessibility: make the element cache safe against
+ re-entrancy
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+On Apple platforms, QAccessibleCache invalidated and released an
+element while the map still pointed to it. Invalidating an element can
+re-enter the cache, for instance through the ObjectDestroyed event
+that deleteInterface sends, which creates elements via
+notifyAccessibilityUpdate. A nested call could then find the element
+that is about to be removed, release it a second time, or replace an
+entry without releasing it, leaving a dangling element pointer in the
+cache. Update the map first, and invalidate and release the old
+element after that.
+
+For the same reason, don't hold on to an iterator into idToInterface
+across the ObjectDestroyed event in deleteInterface, and don't delete
+an interface that the event handling already deleted.
+
+Fixes: QTBUG-149629
+Pick-to: 6.12 6.8
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+Change-Id: Ie9f8311fbe104d06dc35421e1970f19a658cf34b
+Reviewed-by: Tor Arne Vestbø <tor.arne.vestbo@qt.io>
+---
+ src/gui/accessible/qaccessiblecache.cpp       | 18 ++++++-------
+ src/gui/accessible/qaccessiblecache_mac.mm    | 27 +++++++++----------
+ .../cocoa/qcocoaaccessibilityelement.mm       |  2 +-
+ 3 files changed, 23 insertions(+), 24 deletions(-)
+
+diff --git a/src/gui/accessible/qaccessiblecache.cpp b/src/gui/accessible/qaccessiblecache.cpp
+index b5dcdca6270c..70079d185355 100644
+--- a/src/gui/accessible/qaccessiblecache.cpp
++++ b/src/gui/accessible/qaccessiblecache.cpp
+@@ -180,27 +180,27 @@ void QAccessibleCache::sendObjectDestroyedEvent(QObject *obj)
+ 
+ void QAccessibleCache::deleteInterface(QAccessible::Id id, QObject *obj)
+ {
+-    const auto it = idToInterface.find(id);
+-    if (it == idToInterface.end()) // the interface may be deleted already
+-        return;
+-
+-    QAccessibleInterface *iface = *it;
+-    qCDebug(lcAccessibilityCache) << "delete - id:" << id << " iface:" << iface;
+-    if (!iface) {
+-        idToInterface.erase(it);
++    QAccessibleInterface *iface = idToInterface.value(id);
++    if (!iface) { // the interface may be deleted already
++        idToInterface.remove(id);
+         return;
+     }
++    qCDebug(lcAccessibilityCache) << "delete - id:" << id << " iface:" << iface;
+ 
+     // QObjects send this from their destructors, but the interfaces
+     // with no associated object call deleteInterface directly.
+     if (!inCacheDestructor && !obj && !iface->object()) {
+         if (QGuiApplicationPrivate::is_app_running && !QGuiApplicationPrivate::is_app_closing && QAccessible::isActive()) {
+             QAccessibleObjectDestroyedEvent event(id);
++            // Event handlers might modify the cache, so don't hold on to
++            // iterators across this call.
+             QAccessible::updateAccessibility(&event);
++            if (idToInterface.value(id) != iface) // deleted while handling the event
++                return;
+         }
+     }
+ 
+-    idToInterface.erase(it);
++    idToInterface.remove(id);
+     interfaceToId.take(iface);
+     if (!obj)
+         obj = iface->object();
+diff --git a/src/gui/accessible/qaccessiblecache_mac.mm b/src/gui/accessible/qaccessiblecache_mac.mm
+index 6b41867105fc..f7e8be46b29d 100644
+--- a/src/gui/accessible/qaccessiblecache_mac.mm
++++ b/src/gui/accessible/qaccessiblecache_mac.mm
+@@ -14,21 +14,19 @@ - (void)invalidate;
+ bool QAccessibleCache::insertElement(QAccessible::Id axid,
+                                      QT_MANGLE_NAMESPACE(QMacAccessibilityElement) *element) const
+ {
+-    if (const auto it = accessibleElements.find(axid); it == accessibleElements.end()) {
+-        accessibleElements[axid] = element;
+-        [element retain];
+-        return true;
+-    } else if (it.value() != element) {
+-        auto *oldElement = it.value();
+-        // this might invalidate the iterator
++    auto *oldElement = accessibleElements.value(axid);
++    if (oldElement == element)
++        return false;
++
++    // Update the map before invalidating and releasing the old element, as
++    // that might re-enter the cache.
++    [element retain];
++    accessibleElements.insert(axid, element);
++    if (oldElement) {
+         [oldElement invalidate];
+         [oldElement release];
+-
+-        accessibleElements[axid] = element;
+-        [element retain];
+-        return true;
+     }
+-    return false;
++    return true;
+ }
+ 
+ void QAccessibleCache::removeAccessibleElement(QAccessible::Id axid)
+@@ -36,9 +34,10 @@ - (void)invalidate;
+     // Some QAccessibleInterface instances in the cache didn't get created in
+     // response to a query, but when we emit events. So we might get called with
+     // and axid for which we don't have any element (yet).
+-    if (QT_MANGLE_NAMESPACE(QMacAccessibilityElement) *element = elementForId(axid)) {
++    // Remove the element from the map before invalidating and releasing it,
++    // as that might re-enter the cache.
++    if (QT_MANGLE_NAMESPACE(QMacAccessibilityElement) *element = accessibleElements.take(axid)) {
+         [element invalidate];
+-        accessibleElements.remove(axid);
+         [element release];
+     }
+ }
