@@ -22,10 +22,10 @@ function(add_repro target source)
 endfunction()
 
 # Deterministic, platform-independent proxy for the re-entrant Cocoa callback.
-add_repro(cache_reentry src/cache_reentry.cpp)
+add_repro(cache_reentry cache_reentry.cpp)
 
 # The same re-entrancy, reached through a real QTableView and a fictional model.
-add_repro(itemview_reentry src/itemview_reentry.cpp)
+add_repro(itemview_reentry itemview_reentry.cpp)
 
 # Second crash path: QAccessibleTable::modelChange() and QTreeView reset/expand.
-add_repro(treeview_reentry src/treeview_reentry.cpp)
+add_repro(treeview_reentry treeview_reentry.cpp)

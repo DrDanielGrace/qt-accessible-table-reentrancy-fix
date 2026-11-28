@@ -76,7 +76,7 @@ QtGui alone still crashes in QtWidgets.
 
 ## Local correction
 
-`repro/patches/qt-6.12.0-accessible-table-reentrancy.patch`:
+`patches/qt-6.12.0-accessible-table-reentrancy.patch`:
 
 - snapshots `childToId` and clears the live map before deleting interfaces;
 - iterates the immutable snapshot, never the live hash;
@@ -87,7 +87,7 @@ QtGui alone still crashes in QtWidgets.
 
 ## Regression test
 
-`repro/src/treeview_reentry.cpp` creates a real `QTreeView` with fictional
+`tests/treeview_reentry.cpp` creates a real `QTreeView` with fictional
 children, populates the accessible child cache, and sends a synthetic
 `ModelReset` accessibility event. During `ObjectDestroyed`, it deletes other
 cached children re-entrantly, exactly the kind of cache mutation that caused

@@ -32,7 +32,6 @@ QAccessible::Id g_targetId = 0;
 QList<QAccessible::Id> g_otherIds;
 QAccessibleInterface *g_treeInterface = nullptr;
 bool g_reentered = false;
-int g_destructorCount = 0;
 
 void onAccessibilityUpdate(QAccessibleEvent *event)
 {
@@ -45,16 +44,24 @@ void onAccessibilityUpdate(QAccessibleEvent *event)
         return;
     g_reentered = true;
 
-    // Simulate the platform accessibility backend dropping/invalidating other
-    // native elements synchronously while modelChange() is walking its cache.
-    // The old modelChange() then dereferences interfaces that the nested calls
-    // already deleted.
+    // Simulate the platform accessibility backend re-entering QAccessibleTable
+    // synchronously while modelChange() is walking its cache:
+    // 1. Query uncached child indices so child() inserts into childToId and
+    //    can grow/rehash the hash table during modelChange().
+    // 2. Delete other cached children re-entrantly so modelChange() encounters
+    //    IDs already removed from QAccessibleCache.
+    qInfo() << "update handler: querying uncached children during modelChange";
+    if (g_treeInterface) {
+        for (int i = kPrecreatedChildren; i < kChildCount; ++i)
+            (void)g_treeInterface->child(i);
+    }
+
     qInfo() << "update handler: deleting other cached children during modelChange";
     for (QAccessible::Id id : std::as_const(g_otherIds)) {
         if (id != event->uniqueId())
             QAccessible::deleteAccessibleInterface(id);
     }
-    qInfo() << "update handler: re-entrant child deletions returned";
+    qInfo() << "update handler: re-entrant child mutations returned";
 }
 
 } // namespace
@@ -124,6 +131,16 @@ int main(int argc, char **argv)
     const auto previousHandler = QAccessible::installUpdateHandler(&onAccessibilityUpdate);
 
     QTimer::singleShot(0, &app, [&] {
+        qInfo() << "sending a synthetic RowsInserted accessibility event";
+        QAccessibleTableModelChangeEvent rowsInsertedEvent(
+            &view, QAccessibleTableModelChangeEvent::RowsInserted);
+        rowsInsertedEvent.setFirstRow(0);
+        rowsInsertedEvent.setLastRow(0);
+        QAccessible::updateAccessibility(&rowsInsertedEvent);
+        qInfo() << "synthetic RowsInserted returned";
+
+        g_reentered = false;
+
         qInfo() << "sending a synthetic ModelReset accessibility event";
         QAccessibleTableModelChangeEvent event(
             &view, QAccessibleTableModelChangeEvent::ModelReset);

@@ -31,7 +31,6 @@ namespace {
 
 QAccessible::Id g_targetId = 0;
 bool g_reentered = false;
-int g_destructorCount = 0;
 
 void onAccessibilityUpdate(QAccessibleEvent *event)
 {
@@ -132,7 +131,9 @@ int main(int argc, char **argv)
 
         const bool stillCached = QAccessible::accessibleInterface(g_targetId) != nullptr;
         qInfo() << "cell interface still in cache:" << stillCached;
-        qInfo() << "interface destructor count observed:" << g_destructorCount;
+
+        delete view;
+        view = nullptr;
 
         if (stillCached) {
             qCritical() << "FAIL: deleted table cell interface is still cached";

@@ -2,16 +2,17 @@
 
 ## Result
 
-The rebuilt LabPlot 2.12.80 application is installed at:
+The rebuilt LabPlot 2.12.80 standalone test bundle was assembled in the
+workspace at:
 
 ```text
-/Applications/LabPlot.app
+LabPlot-2.12.80-a11y-test.app
 ```
 
 Older test/experimental bundles are preserved under:
 
 ```text
-/Users/dp/Downloads/Old LabPlot Versions/
+~/Downloads/Old LabPlot Versions/
 ```
 
 It is an arm64 macOS app bundle, signed ad-hoc with the original
@@ -23,10 +24,10 @@ official KDE release and is not Apple-notarised.
 - LabPlot source: `labplot-src`, version 2.12.80, commit `d224f68`
 - Qt source: v6.12.0
 - Patches:
-  - `repro/patches/qt-6.12.0-accessible-cache-reentrancy.patch`
+  - `patches/qt-6.12.0-accessible-cache-reentrancy.patch`
     - upstream `1d3a303846c2df629b9b7d3e4e4d87c4f61272b4`
     - 6.12 cherry-pick `a9807578c4b4`, `QTBUG-149629`
-  - `repro/patches/qt-6.12.0-accessible-table-reentrancy.patch`
+  - `patches/qt-6.12.0-accessible-table-reentrancy.patch`
     - local QtWidgets correction for `QAccessibleTable::modelChange()`
     - confirmed by dSYM at `itemviews.cpp:696`
 - Qt install: `Qt-patched-craft/6.12.0`
@@ -98,8 +99,8 @@ tests. TCC accessibility permission was not changed.
 - Test output: `test-output/rebuilt-*`, `test-output/reopen`,
   `test-output/NIST-*`
 - Accessibility results: `repro/results/final-*`
-- Symbolication report: `repro/NEW-CRASH-SYMBOLICATION.md`
-- Build compatibility report: `repro/BUILD-COMPATIBILITY.md`
+- Symbolication report: `docs/NEW-CRASH-SYMBOLICATION.md`
+- Build compatibility report: `docs/BUILD-COMPATIBILITY.md`
 
 ## Limitations
 

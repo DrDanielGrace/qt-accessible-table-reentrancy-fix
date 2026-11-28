@@ -54,8 +54,9 @@ and the GitHub API `/repos/qt/qtbase/pulls` endpoint returns HTTP 404. Qt's
 `CONTRIBUTING.md` states that GitHub pull requests are not accepted and that
 all changes must go through <https://codereview.qt-project.org>.
 
-The fork branches above are ready to be pushed to Gerrit. This repository keeps
-the reviewable patch, reproducers and evidence public in the meantime.
+The fork branches above have been uploaded to Qt Gerrit (see
+[Gerrit review links](#gerrit-review-links) below). This repository keeps
+the reviewable patch, reproducers, and evidence public alongside them.
 
 ## Reproducers
 

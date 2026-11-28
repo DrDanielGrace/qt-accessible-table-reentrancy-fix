@@ -122,3 +122,16 @@ index 6b41867105fc..f7e8be46b29d 100644
          [element release];
      }
  }
+diff --git a/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm b/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
+index 447392845a8b..d89f7402d102 100644
+--- a/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
++++ b/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
+@@ -216,7 +216,7 @@ + (instancetype)elementWithInterface:(QAccessibleInterface *)iface
+     return [self elementWithId:anId];
+ }
+ 
+-// called by QAccessibleCache::removeAccessibleElement, which also releases
++// called by QAccessibleCache after removing the element, which also releases
+ - (void)invalidate {
+     axid = 0;
+     if (rows) {
